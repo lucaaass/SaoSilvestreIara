@@ -30,7 +30,11 @@ const EMAIL_ADMINS = [
 
 
 
-  'neusa.scarelli@gmail.com'
+  'neusa.scarelli@gmail.com',
+
+
+  
+  'allan.renato.ar@gmail.com'
 
 
 

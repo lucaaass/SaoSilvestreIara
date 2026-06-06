@@ -127,7 +127,7 @@ return ( <nav className="nav">
         to="/login"
         className="login-link"
       >
-        Entrar
+        Entrar Admin
       </Link>
 
     )}

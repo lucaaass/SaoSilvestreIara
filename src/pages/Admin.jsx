@@ -1,1213 +1,405 @@
 import { useEffect, useState } from 'react'
-
-
-
 import { supabase } from '../services/supabase'
-
-
-
 import { useNavigate } from 'react-router-dom'
-
-
-
 import * as XLSX from 'xlsx'
-
-
-
-
-
-
+import Swal from 'sweetalert2'
 
 const EMAIL_ADMINS = [
-
-
-
   'lucasmarques630@gmail.com',
-
-
-
   'arenato13@hotmail.com',
-
-
-
   'neusa.scarelli@gmail.com',
-
-
-  
   'allan.renato.ar@gmail.com'
-
-
-
 ]
 
-
-
-
-
-
-
 export default function Admin() {
-
-
-
   const [dados, setDados] = useState([])
-
-
-
   const [user, setUser] = useState(null)
-
-
-
   const [loading, setLoading] = useState(true)
+  
+  // 🎯 Estados de Filtro e Busca
+  const [busca, setBusca] = useState('')
+  const [filtroStatus, setFiltroStatus] = useState('TODOS') // TODOS, PAGO, PENDENTE
 
-
-
-
-
-
+  // 🎯 Estados de Paginação Avançada
+  const [paginaAtual, setPaginaAtual] = useState(1)
+  const [itensPorPagina, setItensPorPagina] = useState(10)
 
   const navigate = useNavigate()
 
-
-
-
-
-
-
   useEffect(() => {
-
-
-
-
-
-
-
-  async function verificarUsuario() {
-
-
-
-
-
-
-
-    const {
-
-
-
-      data: { session }
-
-
-
-    } = await supabase.auth.getSession()
-
-
-
-
-
-
-
-    if (!session) {
-
-
-
-      navigate('/login')
-
-
-
-      return
-
-
-
-    }
-
-
-
-
-
-
-
-    setUser(session.user)
-
-
-
-    setLoading(false)
-
-
-
-
-
-
-
-    if (EMAIL_ADMINS.includes(session.user.email)) {
-
-
-
-  carregar()
-
-
-
-}
-
-
-
-  }
-
-
-
-
-
-
-
-  verificarUsuario()
-
-
-
-
-
-
-
-  const {
-
-
-
-    data: { subscription }
-
-
-
-  } = supabase.auth.onAuthStateChange(
-
-
-
-    (_event, session) => {
-
-
-
-
-
-
+    async function verificarUsuario() {
+      const { data: { session } } = await supabase.auth.getSession()
 
       if (!session) {
-
-
-
         navigate('/login')
-
-
-
         return
-
-
-
       }
-
-
-
-
-
-
 
       setUser(session.user)
+      setLoading(false)
 
-
-
+      if (EMAIL_ADMINS.includes(session.user.email)) {
+        carregar()
+      }
     }
 
+    verificarUsuario()
 
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (!session) {
+          navigate('/login')
+          return
+        }
+        setUser(session.user)
+      }
+    )
 
-  )
-
-
-
-
-
-
-
-  return () => {
-
-
-
-    subscription.unsubscribe()
-
-
-
-  }
-
-
-
-
-
-
-
-}, [navigate])
-
-
-
-
-
-
+    return () => {
+      subscription.unsubscribe()
+    }
+  }, [navigate])
 
   async function carregar() {
-
-
-
     const { data, error } = await supabase
-
-
-
       .from('inscricoes')
-
-
-
       .select('*')
-
-
-
       .order('id', { ascending: false })
 
-
-
-
-
-
-
     if (error) {
-
-
-
       console.log(error)
-
-
-
       return
-
-
-
     }
 
-
-
-
-
-
-
     setDados(data || [])
-
-
-
   }
 
+  async function aprovar(item) {
+    const { error } = await supabase
+      .from('inscricoes')
+      .update({ status_pagamento: 'PAGO' })
+      .eq('id', item.id)
 
+    if (error) {
+      Swal.fire({
+        toast: true,
+        position: 'top-end',
+        icon: 'error',
+        title: 'Erro ao aprovar',
+        text: error.message,
+        showConfirmButton: false,
+        timer: 3000
+      })
+      return
+    }
 
+    // Toast de sucesso ao aprovar
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'success',
+      title: 'Inscrição aprovada com sucesso!',
+      showConfirmButton: false,
+      timer: 2500,
+      timerProgressBar: true
+    })
 
+    const telefone = `55${item.telefone}`
+    // ⚡ Inclui dinamicamente o código de inscrição na mensagem do WhatsApp enviado ao atleta
+    const textoCodigo = item.codigo_inscricao ? ` (Inscrição #${item.codigo_inscricao})` : ''
+    const mensagem = `Olá ${item.nome_completo}! Sua inscrição${textoCodigo} na Corrida São Silvestre foi aprovada e o pagamento foi confirmado. 🏃🎉`
 
+    window.open(
+      `https://wa.me/${telefone}?text=${encodeURIComponent(mensagem)}`,
+      '_blank'
+    )
 
-
-async function aprovar(item) {
-
-
-
-
-
-
-
-  const { error } = await supabase
-
-
-
-    .from('inscricoes')
-
-
-
-    .update({ status_pagamento: 'PAGO' })
-
-
-
-    .eq('id', item.id)
-
-
-
-
-
-
-
-  if (error) {
-
-
-
-    alert(error.message)
-
-
-
-    return
-
-
-
+    carregar()
   }
-
-
-
-
-
-
-
-  const telefone = `55${item.telefone}`
-
-
-
-
-
-
-
-  const mensagem =
-
-
-
-    `Olá ${item.nome_completo}! Sua inscrição na Corrida São Silvestre foi aprovada e o pagamento foi confirmado. 🏃🎉`
-
-
-
-
-
-
-
-  window.open(
-
-
-
-    `https://wa.me/${telefone}?text=${encodeURIComponent(mensagem)}`,
-
-
-
-    '_blank'
-
-
-
-  )
-
-
-
-
-
-
-
-  carregar()
-
-
-
-}
-
-
-
-
-
-
 
   async function sair() {
-
-
-
     await supabase.auth.signOut()
-
-
-
     navigate('/login')
-
-
-
   }
-
-
-
-
-
-
 
   function exportarExcel() {
-
-
-
     const ws = XLSX.utils.json_to_sheet(dados)
-
-
-
     const wb = XLSX.utils.book_new()
-
-
-
-
-
-
-
     XLSX.utils.book_append_sheet(wb, ws, 'Inscritos')
-
-
-
     XLSX.writeFile(wb, 'inscritos.xlsx')
-
-
-
   }
 
-
-
-  function enviarWhatsapp(inscricao) {
-
-
-
-
-
-
-
-  const telefone = `55${inscricao.telefone}`
-
-
-
-
-
-
-
-  const mensagem =
-
-
-
-    `Olá ${inscricao.nome_completo}! Sua inscrição na Corrida São Silvestre foi aprovada e o pagamento foi confirmado. 🏃🎉`
-
-
-
-
-
-
-
-  const url =
-
-
-
-    `https://wa.me/${telefone}?text=${encodeURIComponent(mensagem)}`
-
-
-
-
-
-
-
-  window.open(url, '_blank')
-
-
-
-}
-
-
-
-
-
-
-
-  // 🔵 loading global
-
-
-
-  if (loading) {
-
-
-
-    return (
-
-
-
-      <div className="container">
-
-
-
-        <div className="card">
-
-
-
-          <h2>Carregando...</h2>
-
-
-
-        </div>
-
-
-
-      </div>
-
-
-
-    )
-
-
-
+  // ==========================================
+  // ⚙️ LÓGICA DE FILTRAGEM E BUSCA (PROCESSAMENTO)
+  // ==========================================
+  const dadosFiltrados = dados.filter(item => {
+    const texto = busca.toLowerCase()
+    // 🔍 Agora a busca também filtra pelo código da inscrição de forma inteligente
+    const bateTexto = 
+      item.nome_completo?.toLowerCase().includes(texto) || 
+      item.telefone?.includes(texto) ||
+      item.codigo_inscricao?.toLowerCase().includes(texto)
+    
+    // Aplica filtro por Status do pagamento
+    if (filtroStatus === 'TODOS') return bateTexto
+    if (filtroStatus === 'PAGO') return bateTexto && item.status_pagamento === 'PAGO'
+    if (filtroStatus === 'PENDENTE') return bateTexto && item.status_pagamento !== 'PAGO'
+    
+    return bateTexto
+  })
+
+  // ==========================================
+  // ⚙️ LÓGICA DA PAGINAÇÃO SOBRE OS FILTRADOS
+  // ==========================================
+  const totalPaginas = Math.ceil(dadosFiltrados.length / itensPorPagina)
+  const indiceUltimoItem = paginaAtual * itensPorPagina
+  const indicePrimeiroItem = indiceUltimoItem - itensPorPagina
+  const dadosPaginados = dadosFiltrados.slice(indicePrimeiroItem, indiceUltimoItem)
+
+  // Reseta para a página 1 caso mude o filtro ou digite algo na busca
+  const gerenciarMudancaBusca = (e) => {
+    setBusca(e.target.value)
+    setPaginaAtual(1)
   }
 
-
-
-
-
-
-
-  // 🔵 sem usuário
-
-
-
-  if (!user) {
-
-
-
-    return (
-
-
-
-      <div className="container">
-
-
-
-        <div className="card">
-
-
-
-          <h2>Redirecionando...</h2>
-
-
-
-        </div>
-
-
-
-      </div>
-
-
-
-    )
-
-
-
+  const gerenciarMudancaFiltro = (status) => {
+    setFiltroStatus(status)
+    setPaginaAtual(1)
   }
 
-
-
-
-
-
-
-  // 🔴 bloqueio de admin
-
-
-
-  if (!EMAIL_ADMINS.includes(user.email)){
-
-
-
+  if (loading) return <div className="container"><div className="card"><h2>Carregando...</h2></div></div>
+  if (!user) return <div className="container"><div className="card"><h2>Redirecionando...</h2></div></div>
+  if (!EMAIL_ADMINS.includes(user.email)) {
     return (
-
-
-
       <div className="container">
-
-
-
         <div className="card">
-
-
-
           <h2>Acesso negado</h2>
-
-
-
-
-
-
-
           <p>Usuário logado: {user.email}</p>
-
-
-
-
-
-
-
-          <button onClick={sair}>
-
-
-
-            Sair
-
-
-
-          </button>
-
-
-
+          <button onClick={sair}>Sair</button>
         </div>
-
-
-
       </div>
-
-
-
     )
-
-
-
   }
-
-
-
-
-
-
 
   return (
-
-
-
-    <div className="container">
-
-
-
-      <div className="card">
-
-
-
-
-
-
-
-       <h2 className="admin-title">
-
-
-
-  Painel Administrativo
-
-
-
-</h2>
-
-
-
-
-
-
-
-  <div className="admin-header">
-
-
-
-
-
-
-
-  <div className="admin-user">
-
-
-
-
-
-
-
-    <img
-
-
-
-      src={
-
-
-
-        user.user_metadata?.avatar_url ||
-
-
-
-        'https://via.placeholder.com/80'
-
-
-
-      }
-
-
-
-      alt="Perfil"
-
-
-
-      className="admin-avatar"
-
-
-
-    />
-
-
-
-
-
-
-
-    <div className="admin-info">
-
-
-
-
-
-
-
-
-
-
-
-      <p>
-
-
-
-        {user.user_metadata?.full_name || 'Administrador'}
-
-
-
-      </p>
-
-
-
-
-
-
-
-      <small>
-
-
-
-        {user.email}
-
-
-
-      </small>
-
-
-
-
-
-
-
-    </div>
-
-
-
-
-
-
-
-  </div>
-
-
-
-
-
-
-
-</div>
-
-
-
-       <div className="admin-actions">
-
-
-
-          <button onClick={exportarExcel}>
-
-
-
-            Exportar Excel
-
-
-
-          </button>
-
-
-
-
-
-
-
-          <button onClick={sair}>
-
-
-
-            Sair
-
-
-
-          </button>
-
-
-
+    <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
+      <div className="card" style={{ background: '#fff', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', padding: '24px' }}>
+        
+        {/* Cabeçalho do Admin */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', paddingBottom: '20px', marginBottom: '25px', flexWrap: 'wrap', gap: '15px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <img
+              src={user.user_metadata?.avatar_url || 'https://via.placeholder.com/80'}
+              alt="Perfil"
+              style={{ width: '50px', height: '50px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #15803d' }}
+            />
+            <div>
+              <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>Painel Administrativo</h2>
+              <small style={{ color: '#64748b', fontSize: '13px' }}>{user.email}</small>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button onClick={exportarExcel} style={{ background: '#16a34a', color: 'white', border: 'none', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', transition: 'all 0.2s' }}>
+              📊 Exportar Excel
+            </button>
+            <button onClick={sair} style={{ background: '#ef4444', color: 'white', border: 'none', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '500' }}>
+              Sair
+            </button>
+          </div>
         </div>
 
-
-
-<div className="stats-grid">
-
-
-
-
-
-
-
-  <div className="stat-card">
-
-
-
-    <h2>{dados.length}</h2>
-
-
-
-    <p>Total de Inscrições</p>
-
-
-
-  </div>
-
-
-
-
-
-
-
-  <div className="stat-card pago">
-
-
-
-    <h2>
-
-
-
-      {
-
-
-
-        dados.filter(
-
-
-
-          i => i.status_pagamento === 'PAGO'
-
-
-
-        ).length
-
-
-
-      }
-
-
-
-    </h2>
-
-
-
-
-
-
-
-    <p>Pagamentos Confirmados</p>
-
-
-
-  </div>
-
-
-
-
-
-
-
-  <div className="stat-card pendente">
-
-
-
-    <h2>
-
-
-
-      {
-
-
-
-        dados.filter(
-
-
-
-          i => i.status_pagamento !== 'PAGO'
-
-
-
-        ).length
-
-
-
-      }
-
-
-
-    </h2>
-
-
-
-
-
-
-
-    <p>Pendentes</p>
-
-
-
-  </div>
-
-
-
-
-
-
-
-</div>
-
-
-
-<div className="table-container">
-
-
-
-        <table>
-
-
-
-          <thead>
-
-
-
-            <tr>
-
-
-
-              <th>Nome</th>
-
-
-
-              <th>Nascimento</th>
-
-
-
-              <th>Camisa</th>
-
-
-
-              <th>Status</th>
-
-
-
-              <th>Comprovante</th>
-
-
-
-              <th>Ação</th>
-
-
-
-            </tr>
-
-
-
-          </thead>
-
-
-
-
-
-
-
-          <tbody>
-
-
-
-            {dados.map((item) => (
-
-
-
-              <tr key={item.id}>
-
-
-
-                <td>{item.nome_completo}</td>
-
-
-
-                <td>
-
-
-
-                {item.data_nascimento
-
-
-
-                  ?.split('-')
-
-
-
-                  .reverse()
-
-
-
-                  .join('/')}
-
-
-
-              </td>
-
-
-
-                <td>{item.tamanho_camisa}</td>
-
-
-
-
-
-
-
-                <td>
-
-
-
-                  <span className={
-
-
-
-                    item.status_pagamento === 'PAGO'
-
-
-
-                      ? 'status-pago'
-
-
-
-                      : 'status-pendente'
-
-
-
-                  }>
-
-
-
-                    {item.status_pagamento}
-
-
-
-                  </span>
-
-
-
-                </td>
-
-
-
-
-
-
-
-                <td>
-
-
-
-                  {item.comprovante_url ? (
-
-
-
-                    <a href={item.comprovante_url} target="_blank" rel="noreferrer">
-
-
-
-                      Ver comprovante
-
-
-
-                    </a>
-
-
-
-                  ) : (
-
-
-
-                    'Não enviado'
-
-
-
-                  )}
-
-
-
-                </td>
-
-
-
-
-
-
-
-                <td>
-
-
-
-                  {item.status_pagamento !== 'PAGO' && (
-
-
-
-                    <button onClick={() => aprovar(item)}>
-
-
-
-  Aprovar
-
-
-
-</button>
-
-
-
-                  )}
-
-
-
-                </td>
-
-
-
-              </tr>
-
-
-
+        {/* Cards de Métricas */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '30px' }}>
+          <div style={{ padding: '20px', borderRadius: '10px', background: '#f8fafc', borderLeft: '5px solid #3b82f6' }}>
+            <h3 style={{ margin: '0 0 5px 0', fontSize: '28px', color: '#1e293b' }}>{dados.length}</h3>
+            <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>Total Geral</p>
+          </div>
+          <div style={{ padding: '20px', borderRadius: '10px', background: '#f0fdf4', borderLeft: '5px solid #16a34a' }}>
+            <h3 style={{ margin: '0 0 5px 0', fontSize: '28px', color: '#14532d' }}>{dados.filter(i => i.status_pagamento === 'PAGO').length}</h3>
+            <p style={{ margin: 0, color: '#166534', fontSize: '14px' }}>Confirmados (PAGO)</p>
+          </div>
+          <div style={{ padding: '20px', borderRadius: '10px', background: '#fef2f2', borderLeft: '5px solid #ef4444' }}>
+            <h3 style={{ margin: '0 0 5px 0', fontSize: '28px', color: '#7f1d1d' }}>{dados.filter(i => i.status_pagamento !== 'PAGO').length}</h3>
+            <p style={{ margin: 0, color: '#991b1b', fontSize: '14px' }}>Pendentes</p>
+          </div>
+        </div>
+
+        {/* 🛠️ BARRA DE FERRAMENTAS */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', marginBottom: '20px', background: '#f8fafc', padding: '15px', borderRadius: '10px' }}>
+          
+          {/* Caixa de Input de Busca */}
+          <div style={{ flex: '1', minWidth: '260px' }}>
+            <input
+              type="text"
+              placeholder="🔍 Buscar por nome, WhatsApp ou número de inscrição..."
+              value={busca}
+              onChange={gerenciarMudancaBusca}
+              style={{ width: '100%', padding: '10px 14px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+            />
+          </div>
+
+          {/* Segmented Control */}
+          <div style={{ display: 'flex', background: '#e2e8f0', padding: '4px', borderRadius: '8px' }}>
+            {['TODOS', 'PAGO', 'PENDENTE'].map((status) => (
+              <button
+                key={status}
+                onClick={() => gerenciarMudancaFiltro(status)}
+                style={{
+                  border: 'none',
+                  padding: '6px 14px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  fontSize: '13px',
+                  background: filtroStatus === status ? '#fff' : 'transparent',
+                  color: filtroStatus === status ? '#1e293b' : '#64748b',
+                  boxShadow: filtroStatus === status ? '0 2px 4px rgba(0,0,0,0.05)' : 'none',
+                  transition: 'all 0.15s'
+                }}
+              >
+                {status === 'TODOS' ? 'Todos' : status === 'PAGO' ? 'Pagos' : 'Pendentes'}
+              </button>
             ))}
+          </div>
 
+          {/* Seletor de registros por página */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#64748b' }}>
+            <span>Exibir:</span>
+            <select
+              value={itensPorPagina}
+              onChange={(e) => { setItensPorPagina(Number(e.target.value)); setPaginaAtual(1); }}
+              style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', outline: 'none', cursor: 'pointer' }}
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+            </select>
+          </div>
+        </div>
 
+        {/* Tabela de Dados */}
+        <div className="table-container" style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr style={{ background: '#f1f5f9', color: '#475569', fontSize: '13px', textTransform: 'uppercase' }}>
+                {/* 🛠️ Adicionado cabeçalho da Inscrição */}
+                <th style={{ padding: '12px 16px' }}>Inscrição</th>
+                <th style={{ padding: '12px 16px' }}>Nome</th>
+                <th style={{ padding: '12px 16px' }}>Nascimento</th>
+                <th style={{ padding: '12px 16px' }}>Camisa</th>
+                <th style={{ padding: '12px 16px' }}>Status</th>
+                <th style={{ padding: '12px 16px' }}>Comprovante</th>
+                <th style={{ padding: '12px 16px', textAlign: 'center' }}>Ação</th>
+              </tr>
+            </thead>
 
-          </tbody>
+            <tbody style={{ fontSize: '14px', color: '#334155' }}>
+              {dadosPaginados.map((item) => (
+                <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}>
+                  {/* 🛠️ Renderização estilizada da nova coluna de código de inscrição */}
+                  <td style={{ padding: '14px 16px' }}>
+                    {item.codigo_inscricao ? (
+                      <code style={{ background: '#f1f5f9', padding: '3px 6px', borderRadius: '4px', color: '#0f172a', fontWeight: 'bold', fontSize: '12px' }}>
+                        #{item.codigo_inscricao}
+                      </code>
+                    ) : (
+                      <span style={{ color: '#94a3b8', fontSize: '12px', fontStyle: 'italic' }}>Antigo (S/ Cód)</span>
+                    )}
+                  </td>
+                  <td style={{ padding: '14px 16px', fontWeight: '500' }}>{item.nome_completo}</td>
+                  <td style={{ padding: '14px 16px' }}>
+                    {item.data_nascimento?.split('-').reverse().join('/')}
+                  </td>
+                  <td style={{ padding: '14px 16px' }}>{item.tamanho_camisa}</td>
+                  <td style={{ padding: '14px 16px' }}>
+                    <span className={item.status_pagamento === 'PAGO' ? 'status-pago' : 'status-pendente'}>
+                      {item.status_pagamento}
+                    </span>
+                  </td>
+                  <td style={{ padding: '14px 16px' }}>
+                    {item.comprovante_url ? (
+                      <a href={item.comprovante_url} target="_blank" rel="noreferrer" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: '500' }}>
+                        🔍 Ver arquivo
+                      </a>
+                    ) : (
+                      <span style={{ color: '#94a3b8' }}>Não enviado</span>
+                    )}
+                  </td>
+                  <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                    {item.status_pagamento !== 'PAGO' ? (
+                      <button onClick={() => aprovar(item)} style={{ background: '#15803d', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+                        Aprovar
+                      </button>
+                    ) : (
+                      <span style={{ color: '#16a34a', fontSize: '12px', fontWeight: '500' }}>🟢 Concluído</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              
+              {/* Fallback de Linhas Vizinhas Vazias */}
+              {dadosFiltrados.length === 0 && (
+                <tr>
+                  {/* Ajustado de colSpan="6" para "7" para comportar a nova coluna perfeitamente */}
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontSize: '15px' }}>
+                    Nenhum atleta encontrado para os filtros aplicados.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
 
+        {/* PAGINAÇÃO NUMÉRICA PREMIUM */}
+        {totalPaginas > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '25px', paddingWith: '10px', flexWrap: 'wrap', gap: '15px' }}>
+            <span style={{ fontSize: '13px', color: '#64748b' }}>
+              Exibindo registros de {indicePrimeiroItem + 1} a {Math.min(indiceUltimoItem, dadosFiltrados.length)} de um total de {dadosFiltrados.length}
+            </span>
 
+            <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+              <button 
+                onClick={() => setPaginaAtual(prev => Math.max(prev - 1, 1))}
+                disabled={paginaAtual === 1}
+                style={{ border: '1px solid #cbd5e1', background: '#fff', padding: '6px 10px', borderRadius: '6px', cursor: paginaAtual === 1 ? 'not-allowed' : 'pointer', opacity: paginaAtual === 1 ? 0.4 : 1, fontSize: '13px' }}
+              >
+                Anterior
+              </button>
 
-        </table>
+              {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((num) => (
+                <button
+                  key={num}
+                  onClick={() => setPaginaAtual(num)}
+                  style={{
+                    border: '1px solid',
+                    borderColor: paginaAtual === num ? '#15803d' : '#cbd5e1',
+                    background: paginaAtual === num ? '#15803d' : '#fff',
+                    color: paginaAtual === num ? '#fff' : '#1e293b',
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    fontSize: '13px',
+                    transition: 'all 0.15s'
+                  }}
+                >
+                  {num}
+                </button>
+              ))}
 
-
-
-</div>
-
-
+              <button 
+                onClick={() => setPaginaAtual(prev => Math.min(prev + 1, totalPaginas))}
+                disabled={paginaAtual === totalPaginas}
+                style={{ border: '1px solid #cbd5e1', background: '#fff', padding: '6px 10px', borderRadius: '6px', cursor: paginaAtual === totalPaginas ? 'not-allowed' : 'pointer', opacity: paginaAtual === totalPaginas ? 0.4 : 1, fontSize: '13px' }}
+              >
+                Próximo
+              </button>
+            </div>
+          </div>
+        )}
 
       </div>
-
-
-
     </div>
-
-
-
   )
-
-
-
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { supabase } from '../services/supabase'
+import Swal from 'sweetalert2'
 
 export default function Inscricao() {
 
@@ -75,10 +76,17 @@ export default function Inscricao() {
       return
     }
 
-    alert(
-      'Inscrição enviada com sucesso!'
-    )
-
+ Swal.fire({
+  title: 'Inscrição Enviada!',
+  text: 'Em breve você receberá uma mensagem no WhatsApp confirmando o pagamento da sua inscrição.',
+  icon: 'success',
+  confirmButtonText: 'Entendido',
+  confirmButtonColor: '#15803d', // Tom de verde combinando com a São Silvestre
+  background: '#ffffff',
+  customClass: {
+    popup: 'card-profissional'
+  }
+})
     setForm({
       nome: '',
       telefone: '',
@@ -196,23 +204,41 @@ export default function Inscricao() {
 
             📎 Anexar comprovante
 
-            <input
-              type="file"
-              accept="image/*,.pdf"
-              onChange={(e) =>
-                setArquivo(
-                  e.target.files[0]
-                )
-              }
-            />
+<input
+  type="file"
+  accept="image/*,.pdf"
+  /* Se houver arquivo, a chave é fixa. Se for nulo, a chave muda e força o React a resetar o input! */
+  key={arquivo ? 'com-foto' : 'sem-foto'} 
+  onChange={(e) =>
+    setArquivo(
+      e.target.files[0]
+    )
+  }
+/>
 
           </label>
 
-          {arquivo && (
-            <div className="arquivo-selecionado">
-              ✅ {arquivo.name}
-            </div>
-          )}
+       
+{arquivo && (
+  <div className="arquivo-selecionado" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '10px' }}>
+    <span>✅ {arquivo.name}</span>
+    <button
+      type="button"
+      onClick={() => setArquivo(null)}
+      style={{
+        background: '#dc2626',
+        color: 'white',
+        border: 'none',
+        padding: '2px 8px',
+        borderRadius: '4px',
+        cursor: 'pointer',
+        fontSize: '12px'
+      }}
+    >
+      ❌ Remover
+    </button>
+  </div>
+)}
 
           <button
             type="submit"

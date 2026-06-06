@@ -105,7 +105,6 @@ export default function Admin() {
     })
 
     const telefone = `55${item.telefone}`
-    // ⚡ Inclui dinamicamente o código de inscrição na mensagem do WhatsApp enviado ao atleta
     const textoCodigo = item.codigo_inscricao ? ` (Inscrição #${item.codigo_inscricao})` : ''
     const mensagem = `Olá ${item.nome_completo}! Sua inscrição${textoCodigo} na Corrida São Silvestre foi aprovada e o pagamento foi confirmado. 🏃🎉`
 
@@ -115,6 +114,94 @@ export default function Admin() {
     )
 
     carregar()
+  }
+
+  // 🔄 Nova Função: Alterar Linha (Modal interativo)
+  async function alterarLinha(item) {
+    const { value: formValues } = await Swal.fire({
+      title: 'Editar Inscrição',
+      html: `
+        <div style="text-align: left; font-family: sans-serif;">
+          <label style="font-weight: bold; display: block; margin-bottom: 5px;">Nome Completo:</label>
+          <input id="swal-nome" class="swal2-input" style="width: 100%; margin-bottom: 15px;" value="${item.nome_completo || ''}">
+          
+          <label style="font-weight: bold; display: block; margin-bottom: 5px;">Tamanho da Camisa:</label>
+          <select id="swal-camisa" class="swal2-select" style="width: 100%; margin-bottom: 15px;">
+            <option value="P" ${item.tamanho_camisa === 'P' ? 'selected' : ''}>P</option>
+            <option value="M" ${item.tamanho_camisa === 'M' ? 'selected' : ''}>M</option>
+            <option value="G" ${item.tamanho_camisa === 'G' ? 'selected' : ''}>G</option>
+            <option value="GG" ${item.tamanho_camisa === 'GG' ? 'selected' : ''}>GG</option>
+          </select>
+
+          <label style="font-weight: bold; display: block; margin-bottom: 5px;">Status do Pagamento:</label>
+          <select id="swal-status" class="swal2-select" style="width: 100%;">
+            <option value="PENDENTE" ${item.status_pagamento !== 'PAGO' ? 'selected' : ''}>PENDENTE</option>
+            <option value="PAGO" ${item.status_pagamento === 'PAGO' ? 'selected' : ''}>PAGO</option>
+          </select>
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'Salvar Alterações',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#15803d',
+      preConfirm: () => {
+        return {
+          nome_completo: document.getElementById('swal-nome').value,
+          tamanho_camisa: document.getElementById('swal-camisa').value,
+          status_pagamento: document.getElementById('swal-status').value
+        }
+      }
+    })
+
+    if (formValues) {
+      const { error } = await supabase
+        .from('inscricoes')
+        .update(formValues)
+        .eq('id', item.id)
+
+      if (error) {
+        Swal.fire('Erro!', 'Não foi possível atualizar o registro.', 'error')
+        return
+      }
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Registro atualizado!',
+        showConfirmButton: false,
+        timer: 1500
+      })
+      carregar()
+    }
+  }
+
+  // ❌ Nova Função: Excluir Linha (Com confirmação segura)
+  async function excluirLinha(id, nome) {
+    const resultado = await Swal.fire({
+      title: 'Tem certeza?',
+      text: `Você irá deletar permanentemente a inscrição de: ${nome}. Esta ação não pode ser desfeita!`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#ef4444',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Sim, excluir!',
+      cancelButtonText: 'Cancelar'
+    })
+
+    if (resultado.isConfirmed) {
+      const { error } = await supabase
+        .from('inscricoes')
+        .delete()
+        .eq('id', id)
+
+      if (error) {
+        Swal.fire('Erro!', 'Não foi possível excluir o registro.', 'error')
+        return
+      }
+
+      Swal.fire('Deletado!', 'A inscrição foi removida com sucesso.', 'success')
+      carregar()
+    }
   }
 
   async function sair() {
@@ -134,13 +221,11 @@ export default function Admin() {
   // ==========================================
   const dadosFiltrados = dados.filter(item => {
     const texto = busca.toLowerCase()
-    // 🔍 Agora a busca também filtra pelo código da inscrição de forma inteligente
     const bateTexto = 
       item.nome_completo?.toLowerCase().includes(texto) || 
       item.telefone?.includes(texto) ||
       item.codigo_inscricao?.toLowerCase().includes(texto)
     
-    // Aplica filtro por Status do pagamento
     if (filtroStatus === 'TODOS') return bateTexto
     if (filtroStatus === 'PAGO') return bateTexto && item.status_pagamento === 'PAGO'
     if (filtroStatus === 'PENDENTE') return bateTexto && item.status_pagamento !== 'PAGO'
@@ -156,7 +241,6 @@ export default function Admin() {
   const indicePrimeiroItem = indiceUltimoItem - itensPorPagina
   const dadosPaginados = dadosFiltrados.slice(indicePrimeiroItem, indiceUltimoItem)
 
-  // Reseta para a página 1 caso mude o filtro ou digite algo na busca
   const gerenciarMudancaBusca = (e) => {
     setBusca(e.target.value)
     setPaginaAtual(1)
@@ -182,7 +266,7 @@ export default function Admin() {
   }
 
   return (
-    <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
+    <div className="container" style={{ maxWidth: '1240px', margin: '0 auto', padding: '20px' }}>
       <div className="card" style={{ background: '#fff', borderRadius: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.08)', padding: '24px' }}>
         
         {/* Cabeçalho do Admin */}
@@ -224,10 +308,8 @@ export default function Admin() {
           </div>
         </div>
 
-        {/* 🛠️ BARRA DE FERRAMENTAS */}
+        {/* BARRA DE FERRAMENTAS */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', marginBottom: '20px', background: '#f8fafc', padding: '15px', borderRadius: '10px' }}>
-          
-          {/* Caixa de Input de Busca */}
           <div style={{ flex: '1', minWidth: '260px' }}>
             <input
               type="text"
@@ -238,7 +320,6 @@ export default function Admin() {
             />
           </div>
 
-          {/* Segmented Control */}
           <div style={{ display: 'flex', background: '#e2e8f0', padding: '4px', borderRadius: '8px' }}>
             {['TODOS', 'PAGO', 'PENDENTE'].map((status) => (
               <button
@@ -262,7 +343,6 @@ export default function Admin() {
             ))}
           </div>
 
-          {/* Seletor de registros por página */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#64748b' }}>
             <span>Exibir:</span>
             <select
@@ -283,28 +363,27 @@ export default function Admin() {
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
             <thead>
               <tr style={{ background: '#f1f5f9', color: '#475569', fontSize: '13px', textTransform: 'uppercase' }}>
-                {/* 🛠️ Adicionado cabeçalho da Inscrição */}
                 <th style={{ padding: '12px 16px' }}>Inscrição</th>
                 <th style={{ padding: '12px 16px' }}>Nome</th>
                 <th style={{ padding: '12px 16px' }}>Nascimento</th>
                 <th style={{ padding: '12px 16px' }}>Camisa</th>
                 <th style={{ padding: '12px 16px' }}>Status</th>
                 <th style={{ padding: '12px 16px' }}>Comprovante</th>
-                <th style={{ padding: '12px 16px', textAlign: 'center' }}>Ação</th>
+                {/* 🛠️ Aumentado o espaço das Ações para caber os botões adicionados */}
+                <th style={{ padding: '12px 16px', textAlign: 'center', width: '260px' }}>Ações de Controle</th>
               </tr>
             </thead>
 
             <tbody style={{ fontSize: '14px', color: '#334155' }}>
               {dadosPaginados.map((item) => (
                 <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}>
-                  {/* 🛠️ Renderização estilizada da nova coluna de código de inscrição */}
                   <td style={{ padding: '14px 16px' }}>
                     {item.codigo_inscricao ? (
                       <code style={{ background: '#f1f5f9', padding: '3px 6px', borderRadius: '4px', color: '#0f172a', fontWeight: 'bold', fontSize: '12px' }}>
                         #{item.codigo_inscricao}
                       </code>
                     ) : (
-                      <span style={{ color: '#94a3b8', fontSize: '12px', fontStyle: 'italic' }}>Antigo (S/ Cód)</span>
+                      <span style={{ color: '#94a3b8', fontSize: '12px', fontStyle: 'italic' }}>S/ Cód</span>
                     )}
                   </td>
                   <td style={{ padding: '14px 16px', fontWeight: '500' }}>{item.nome_completo}</td>
@@ -326,22 +405,34 @@ export default function Admin() {
                       <span style={{ color: '#94a3b8' }}>Não enviado</span>
                     )}
                   </td>
+                  
+                  {/* 🛠️ COLUNA DE AÇÕES COMBINADA (Aprovar, Editar, Excluir) */}
                   <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                    {item.status_pagamento !== 'PAGO' ? (
-                      <button onClick={() => aprovar(item)} style={{ background: '#15803d', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
-                        Aprovar
+                    <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', alignItems: 'center' }}>
+                      
+                      {item.status_pagamento !== 'PAGO' ? (
+                        <button onClick={() => aprovar(item)} style={{ background: '#15803d', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }} title="Aprovar Pagamento">
+                          Aprovar
+                        </button>
+                      ) : (
+                        <span style={{ color: '#16a34a', fontSize: '11px', fontWeight: 'bold', padding: '6px 4px' }}>🟢 Pago</span>
+                      )}
+
+                      <button onClick={() => alterarLinha(item)} style={{ background: '#0284c7', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }} title="Editar Dados">
+                        ✏️ Alterar
                       </button>
-                    ) : (
-                      <span style={{ color: '#16a34a', fontSize: '12px', fontWeight: '500' }}>🟢 Concluído</span>
-                    )}
+
+                      <button onClick={() => excluirLinha(item.id, item.nome_completo)} style={{ background: '#dc2626', color: 'white', border: 'none', padding: '6px 10px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px', fontWeight: 'bold' }} title="Excluir Registro">
+                        🗑️ Excluir
+                      </button>
+
+                    </div>
                   </td>
                 </tr>
               ))}
               
-              {/* Fallback de Linhas Vizinhas Vazias */}
               {dadosFiltrados.length === 0 && (
                 <tr>
-                  {/* Ajustado de colSpan="6" para "7" para comportar a nova coluna perfeitamente */}
                   <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#94a3b8', fontSize: '15px' }}>
                     Nenhum atleta encontrado para os filtros aplicados.
                   </td>
@@ -351,9 +442,9 @@ export default function Admin() {
           </table>
         </div>
 
-        {/* PAGINAÇÃO NUMÉRICA PREMIUM */}
+        {/* PAGINAÇÃO NUMÉRICA */}
         {totalPaginas > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '25px', paddingWith: '10px', flexWrap: 'wrap', gap: '15px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '25px', flexWrap: 'wrap', gap: '15px' }}>
             <span style={{ fontSize: '13px', color: '#64748b' }}>
               Exibindo registros de {indicePrimeiroItem + 1} a {Math.min(indiceUltimoItem, dadosFiltrados.length)} de um total de {dadosFiltrados.length}
             </span>

@@ -104,19 +104,33 @@ export default function Admin() {
       timerProgressBar: true
     })
 
-    const telefone = `55${item.telefone}`
-    const textoCodigo = item.codigo_inscricao ? ` (Inscrição #${item.codigo_inscricao})` : ''
-    const mensagem = `Olá ${item.nome_completo}! Sua inscrição${textoCodigo} na Corrida São Silvestre foi aprovada e o pagamento foi confirmado. 🏃🎉`
+const telefone = `55${item.telefone}`
+    
+    // 🏃 Mensagem Profissional no estilo Oficial da São Silvestre
+    const mensagem = 
+`🏆 *CORRIDA INTERNACIONAL DE SÃO SILVESTRE* 🏆
+--------------------------------------------------
+Olá, *${item.nome_completo.toUpperCase()}*!
+
+Sua inscrição foi *APROVADA* e o seu pagamento foi confirmado com sucesso! 🎉
+
+📦 *DADOS DA SUA INSCRIÇÃO:*
+• *Registro:* #${item.id}
+• *Modalidade:* Corrida Geral 
+• *Tamanho do Uniforme:* ${item.tamanho_camisa}
+
+Seja bem-vindo(a) à Corrida de São Silvestre Iara! Prepare os tênis, foco nos treinos e nos vemos na linha de largada. 👟🇧🇷
+
+`
 
     window.open(
       `https://wa.me/${telefone}?text=${encodeURIComponent(mensagem)}`,
       '_blank'
     )
-
     carregar()
   }
 
-  // 🔄 Nova Função: Alterar Linha (Modal interativo)
+  // 🔄 Função: Alterar Linha (Modal interativo)
   async function alterarLinha(item) {
     const { value: formValues } = await Swal.fire({
       title: 'Editar Inscrição',
@@ -167,7 +181,7 @@ export default function Admin() {
 
       Swal.fire({
         icon: 'success',
-        title: 'Registro atualizado!',
+        title: 'Registro updated!',
         showConfirmButton: false,
         timer: 1500
       })
@@ -175,7 +189,7 @@ export default function Admin() {
     }
   }
 
-  // ❌ Nova Função: Excluir Linha (Com confirmação segura)
+  // ❌ Função: Excluir Linha (Com confirmação segura)
   async function excluirLinha(id, nome) {
     const resultado = await Swal.fire({
       title: 'Tem certeza?',
@@ -221,10 +235,12 @@ export default function Admin() {
   // ==========================================
   const dadosFiltrados = dados.filter(item => {
     const texto = busca.toLowerCase()
+    
+    // 🌟 Atualizado: Agora pesquisa convertendo o item.id para string
     const bateTexto = 
       item.nome_completo?.toLowerCase().includes(texto) || 
       item.telefone?.includes(texto) ||
-      item.codigo_inscricao?.toLowerCase().includes(texto)
+      String(item.id).includes(texto)
     
     if (filtroStatus === 'TODOS') return bateTexto
     if (filtroStatus === 'PAGO') return bateTexto && item.status_pagamento === 'PAGO'
@@ -369,7 +385,6 @@ export default function Admin() {
                 <th style={{ padding: '12px 16px' }}>Camisa</th>
                 <th style={{ padding: '12px 16px' }}>Status</th>
                 <th style={{ padding: '12px 16px' }}>Comprovante</th>
-                {/* 🛠️ Aumentado o espaço das Ações para caber os botões adicionados */}
                 <th style={{ padding: '12px 16px', textAlign: 'center', width: '260px' }}>Ações de Controle</th>
               </tr>
             </thead>
@@ -378,9 +393,10 @@ export default function Admin() {
               {dadosPaginados.map((item) => (
                 <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}>
                   <td style={{ padding: '14px 16px' }}>
-                    {item.codigo_inscricao ? (
+                    {/* 🌟 Atualizado: Mantido o nome e visual "Inscrição", porém renderizando o item.id real */}
+                    {item.id ? (
                       <code style={{ background: '#f1f5f9', padding: '3px 6px', borderRadius: '4px', color: '#0f172a', fontWeight: 'bold', fontSize: '12px' }}>
-                        #{item.codigo_inscricao}
+                        #{item.id}
                       </code>
                     ) : (
                       <span style={{ color: '#94a3b8', fontSize: '12px', fontStyle: 'italic' }}>S/ Cód</span>
@@ -406,7 +422,7 @@ export default function Admin() {
                     )}
                   </td>
                   
-                  {/* 🛠️ COLUNA DE AÇÕES COMBINADA (Aprovar, Editar, Excluir) */}
+                  {/* COLUNA DE AÇÕES COMBINADA (Aprovar, Editar, Excluir) */}
                   <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', alignItems: 'center' }}>
                       

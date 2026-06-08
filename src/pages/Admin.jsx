@@ -108,7 +108,7 @@ const telefone = `55${item.telefone}`
     
     // 🏃 Mensagem Profissional no estilo Oficial da São Silvestre
     const mensagem = 
-`🏆 *CORRIDA INTERNACIONAL DE SÃO SILVESTRE* 🏆
+`🏆 *CORRIDA SÃO SILVESTRE IARA* 🏆
 --------------------------------------------------
 Olá, *${item.nome_completo.toUpperCase()}*!
 

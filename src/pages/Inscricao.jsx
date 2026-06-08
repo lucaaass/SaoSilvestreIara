@@ -207,14 +207,19 @@ export default function Inscricao() {
             onChange={(e) => setForm({ ...form, telefone: aplicarMascaraTelefone(e.target.value) })}
           />
 
-          <input
-            type="date"
-            value={form.nascimento || ''}
-            required
-            disabled={enviando}
-            onChange={(e) => setForm({ ...form, nascimento: e.target.value })}
-            style={{ color: form.nascimento ? '#222222' : '#9ca3af' }}
-          />
+         <input
+  type={form.nascimento ? 'date' : 'text'} // Se já tiver data selecionada, vira date; se não, fica text para exibir o placeholder
+  placeholder="Data de nascimento"
+  value={form.nascimento || ''}
+  required
+  disabled={enviando}
+  onFocus={(e) => (e.target.type = 'date')} // Ao clicar, transforma em date para abrir o calendário nativo no celular
+  onBlur={(e) => {
+    if (!form.nascimento) e.target.type = 'text' // Se sair sem preencher, volta a ser text para mostrar o placeholder de novo
+  }}
+  onChange={(e) => setForm({ ...form, nascimento: e.target.value })}
+  style={{ color: form.nascimento ? '#222222' : '#9ca3af' }}
+/>
 
           <select
             value={form.camisa || ''}

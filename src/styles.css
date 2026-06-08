@@ -474,9 +474,10 @@ tbody tr:hover { background-color: #fafafa; }
 .text-center { text-align: center; }
 
 /* ==========================================================================
-   DISPOSITIVOS MÓVEIS (RESPONSIVIDADE INTELIGENTE)
+   DISPOSITIVOS MÓVEIS (RESPONSIVIDADE INTELIGENTE CORRIGIDA)
    ========================================================================== */
 @media(max-width:768px){
+  /* Navbar & Menu */
   .menu-btn { display: block; background: none; border: none; color: #ffffff; font-size: 30px; width: auto; cursor: pointer; }
   .nav-user { display: none; }
   
@@ -504,7 +505,41 @@ tbody tr:hover { background-color: #fafafa; }
     font-weight: bold;
   }
 
-  /* Ajustes da Home para Mobile */
+  /* 📱 Ajustes Estruturais da Página no Telemóvel */
+  .container {
+    padding: 12px !important;
+  }
+
+  /* 📝 Ajuste do Cartão de Inscrição e Login no Mobile */
+  .inscricao-card, .login-card, .card {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 24px 16px !important; /* Reduz margens internas para dar mais espaço */
+    border-radius: 12px !important;
+  }
+
+  /* 🔥 MELHORIA EM INPUTS E SELECTS: Evita zoom no iOS/Android e aumenta a área de clique */
+  input, select, .upload-box {
+    font-size: 16px !important; /* Tamanho mínimo de 16px anula o zoom automático chato do sistema */
+    padding: 14px 12px !important; /* Campo mais alto para o clique do dedo ser perfeito */
+    height: auto !important;
+    border-radius: 8px !important;
+    margin-bottom: 14px !important;
+  }
+
+  /* Caixa do Comprovante quando anexado */
+  .arquivo-selecionado {
+    flex-direction: column !important; /* Coloca o botão "Remover" abaixo do nome do ficheiro */
+    align-items: stretch !important;
+    gap: 10px !important;
+    padding: 12px !important;
+  }
+  .arquivo-selecionado button {
+    width: 100% !important;
+    padding: 10px !important;
+  }
+
+  /* Ajustes da Home / Landing Page */
   .hero { padding: 30px 20px; gap: 30px; }
   .hero-content h1 { font-size: 2rem; }
   .hero-logo { width: 120px; }
@@ -514,24 +549,42 @@ tbody tr:hover { background-color: #fafafa; }
   .beneficios { padding: 40px 20px; }
   .beneficios h2 { font-size: 1.6rem; }
 
-  .pix-copy-box { flex-direction: column; align-items: stretch; }
-  .btn-copiar { width: 100%; }
-
-  /* Ajustes do Admin Mobile */
-  .admin-header, .admin-user, .admin-actions {
-    flex-direction: column;
-    text-align: center;
-    gap: 12px;
+  /* Caixa de Pagamento PIX */
+  .pix-box {
+    padding: 15px 10px !important;
   }
-  .admin-actions { width: 100%; }
-  .admin-actions button { width: 100%; }
-  .stats-grid { grid-template-columns: 1fr; gap: 12px; }
+  .pix-copy-box { 
+    flex-direction: column !important; 
+    align-items: stretch !important; 
+    gap: 10px !important;
+  }
+  .pix-chave {
+    text-align: center !important;
+    font-size: 14px !important;
+    padding: 12px !important;
+    word-break: break-all !important; /* Impede que o CPF quebre o cartão para o lado */
+  }
+  .btn-copiar, .btn-inscricao { 
+    width: 100% !important; 
+    padding: 14px !important;
+    font-size: 16px !important;
+  }
 
-  .admin-toolbar { flex-direction: column; align-items: stretch; gap: 12px; }
-  .search-box, .segmented-control, .per-page-select { width: 100%; justify-content: center; }
-  .segmented-control button { flex: 1; padding: 10px; }
+  /* Ajustes do Painel Administrativo Mobile */
+  .admin-header, .admin-user, .admin-actions {
+    flex-direction: column !important;
+    text-align: center !important;
+    gap: 12px !important;
+  }
+  .admin-actions { width: 100% !important; }
+  .admin-actions button { width: 100% !important; }
+  .stats-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+
+  .admin-toolbar { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
+  .search-box, .segmented-control, .per-page-select { width: 100% !important; justify-content: center !important; }
+  .segmented-control button { flex: 1 !important; padding: 10px !important; }
   
-  .pagination-wrapper { flex-direction: column; text-align: center; gap: 12px; }
+  .pagination-wrapper { flex-direction: column !important; text-align: center !important; gap: 12px !important; }
 
   table { min-width: 900px; }
 }
